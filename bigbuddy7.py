@@ -1,15 +1,14 @@
 import os
 import asyncio
 from datetime import datetime, timedelta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # ==================== CONFIGURATION ====================
-# Use environment variable for token (Render par set karna hoga)
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8638835983:AAF7G-AnoysedavWMFMZXiganIPhrwlPj2w")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "5608509069"))
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "bigbuddy07")
-UPI_ID = os.environ.get("UPI_ID", "bigbuddy7@ptyes")
+BOT_TOKEN = "8638835983:AAF7G-AnoysedavWMFMZXiganIPhrwlPj2w"
+ADMIN_ID = 5608509069
+ADMIN_USERNAME = "bigbuddy07"
+UPI_ID = "bigbuddy7@ptyes"
 QR_FILE = "qr_default.jpg"
 
 GROUP_CHAT_ID = "-1003641618077"
@@ -27,7 +26,7 @@ MESSAGE_IDS = {
     "digital_demo": 10, "hack_mod_demo": 22,
 }
 
-# ==================== DATA (Same as your code) ====================
+# ==================== DATA ====================
 AI_BOTS = {
     "Digital Marketing Guru": "https://chatgpt.com/g/g-68ca4ae11ad48191b87b97b164cea9d8-dimarko",
     "Ad Creative Bot": "https://chatgpt.com/g/g-68ca4d8512048191ac93522aa6685f4f-ad-creative-bot",
@@ -80,16 +79,6 @@ user_access = {}
 pending_payments = {}
 awaiting_screenshot = {}
 
-# ==================== FIX: DELETE WEBHOOK ON STARTUP ====================
-async def delete_webhook():
-    """Delete any existing webhook before starting polling"""
-    bot = Bot(BOT_TOKEN)
-    try:
-        await bot.delete_webhook()
-        print("✅ Webhook deleted successfully")
-    except Exception as e:
-        print(f"⚠️ Webhook delete error: {e}")
-
 # ==================== FORWARD DEMO ====================
 async def forward_demo(update: Update, context: ContextTypes.DEFAULT_TYPE, demo_key: str):
     query = update.callback_query
@@ -102,14 +91,6 @@ async def forward_demo(update: Update, context: ContextTypes.DEFAULT_TYPE, demo_
             await query.message.reply_text(f"Demo video unavailable.\nWatch demo in group:\n{DEMO_GROUP}")
     else:
         await query.message.reply_text(f"Demo Video\n\nWatch demo in group:\n{DEMO_GROUP}")
-
-# ====================== AUTO MENU FOR ANY MESSAGE ====================
-async def auto_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User kuch bhi type kare to menu dikhao (without /start)"""
-    await update.message.reply_text(
-        "🌟 Welcome to Big Buddy World 🌟\n\nSelect an option below:",
-        reply_markup=get_main_menu()
-    )
 
 # ==================== PAYMENT FUNCTIONS ====================
 async def send_qr_and_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, item: str, price: int, user_message: str, access_type: str = None, access_value: str = None):
@@ -172,6 +153,7 @@ async def handle_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1]
     file = await context.bot.get_file(photo.file_id)
     
+    # Show user details properly to admin
     user_display = f"@{info['user_username']}" if info['user_username'] != "No username" else f"{info['user_name']}"
     
     caption = f"🔔 NEW PAYMENT VERIFICATION\n\n"
@@ -199,13 +181,16 @@ async def approve_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = int(parts[1])
     item = "_".join(parts[2:])
     
+    # Get user info from the message or store it
     await query.message.reply_text(f"✅ APPROVED!\n\nUser ID: {user_id}\nItem: {item}\n\nNow DM this user with access details.")
     
+    # Send approval message to user and redirect to admin
     await context.bot.send_message(
         chat_id=user_id,
         text=f"✅ PAYMENT APPROVED!\n\nYour payment for '{item}' has been verified and approved.\n\n📌 Please contact admin @{ADMIN_USERNAME} to receive your access details.\n\nThank you for your purchase! 🎉"
     )
     
+    # Send user details to admin for easy contact
     await context.bot.send_message(
         chat_id=ADMIN_ID,
         text=f"📌 USER TO CONTACT\n\nUser ID: {user_id}\nPurchased: {item}\n\nClick to message: tg://user?id={user_id}\n\nPlease DM them the access details."
@@ -498,7 +483,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "contact_admin":
         await query.message.reply_text(f"📞 Contact Admin: @{ADMIN_USERNAME}")
     
-    # DEMO VIDEOS (Forward from group)
+    # DEMO VIDEOS
     elif data == "demo_ai_tools":
         await forward_demo(update, context, "ai_tools_demo")
     elif data == "demo_courses":
@@ -542,31 +527,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reject_payment(update, context)
 
 # ==================== MAIN ====================
-async def main():
-    # 🔥 FIX: Delete webhook before starting polling
-    await delete_webhook()
-    
-    # Build application
-    app = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_menu))  # Auto menu on any message
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
-    
+def main():
     print("=" * 60)
-    print("🌟 BIG BUDDY WORLD BOT - FIXED")
+    print("🌟 BIG BUDDY WORLD BOT - FINAL")
     print("=" * 60)
     print(f"✅ UPI: {UPI_ID}")
+    print(f"✅ QR: {QR_FILE}")
     print(f"✅ Admin: @{ADMIN_USERNAME}")
-    print(f"✅ Auto-menu: ON (any message triggers menu)")
-    print(f"✅ Webhook: Deleted on startup")
     print("=" * 60)
     print("Bot is running...")
     
-    # Start polling
-    await app.run_polling()
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main() 
